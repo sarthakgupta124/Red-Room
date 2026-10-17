@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+    
+    - name: Install dependencies
+      run: poetry install --with dev
+    
+    - name: Run linting
+      run: |
+        poetry run ruff check src/ tests/
+        poetry run black --check src/ tests/
+    
+    - name: Run type checking
+      run: poetry run mypy src/
+    
+    - name: Run tests
+      run: poetry run pytest --cov=redroom --cov-report=xml
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Docker images
+      run: |
+        docker build -f deployment/docker/Dockerfile.orchestrator -t red-room-orchestrator:latest .
+        docker build -f src/demo/fintech_app/Dockerfile -t fintech-demo:latest src/demo/fintech_app/

@@ -1,0 +1,26 @@
+security_contracts:
+  - endpoint: /transfer
+    method: POST
+    invariants:
+      - name: balance_non_negative
+        description: Account balance must never go negative
+        rule: "balance >= 0 at all times"
+        severity: critical
+      
+      - name: atomic_balance_check
+        description: Balance check and deduction must be atomic
+        rule: "No concurrent modifications between check and deduction"
+        severity: critical
+      
+      - name: transaction_integrity
+        description: Total money in system must remain constant
+        rule: "sum(all_balances) before == sum(all_balances) after"
+        severity: high
+
+  - endpoint: /balance/{account_id}
+    method: GET
+    invariants:
+      - name: no_side_effects
+        description: Read operations must not modify state
+        rule: "GET requests must be idempotent"
+        severity: medium
